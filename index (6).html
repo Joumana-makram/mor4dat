@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poké Bonus League</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;image-rendering:pixelated}
+body{margin:auto;background:#306230;color:#202020;font:11px/1.7 'Press Start 2P',monospace;padding:12px;max-width:640px}
+h1{color:#f8f8d8;text-align:center;font-size:16px;text-shadow:3px 3px 0 #0f380f}
+.box{background:#f8f8d8;border:4px solid #202020;box-shadow:inset 0 0 0 3px #fff,6px 6px 0 #0f380f;padding:14px;margin:16px 0}
+.box h2{font-size:12px;margin:0 0 10px;color:#e03c28}
+button{font:inherit;background:#e03c28;color:#fff;border:4px solid #202020;padding:10px 14px;cursor:pointer;box-shadow:3px 3px 0 #202020}
+button:active{transform:translate(3px,3px);box-shadow:none}
+button.sm{padding:4px 8px;font-size:9px;background:#3050c8}
+input{font:inherit;font-size:14px;border:4px solid #202020;padding:10px;width:100%;margin:8px 0}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 0;border-bottom:3px dotted #8b8b6b}
+.ico{width:28px;height:28px;border:3px solid #202020}.name{flex:1}.pts{color:#3050c8}
+.bar{height:8px;background:#202020;width:100%}.bar i{display:block;height:100%;background:#e03c28}
+.cats{font-size:8px;color:#555;width:100%}.hide{display:none}
+</style></head><body>
+<h1>⚔ POKÉ BONUS LEAGUE ⚔</h1>
+<div class="box" id="auth"></div>
+<div class="box hide" id="score"></div>
+<div class="box"><h2>▶ LEADERBOARD</h2><div id="board">Loading...</div></div>
+<script>
+/* ===== EDIT THIS ===== */
+const API = "https://script.google.com/macros/s/AKfycbycUVcoNUyXRkdgXvrasjtLNCjqGqNJCJJy0FHXf7K3_KYJizruGVx15S4uZfxYo9Jmhg/exec";
+const TEAMS = [["Tuna","#e03c28"],["A5tbot","#3050c8"],["Tmsa7","#38a038"],["7ot","#e8c000"],["Gmbri","#c050c0"],["Kaborya","#605090"]];
+const CATS = ["K4fi","Games","Dini","Mos3f","Thkafi"];
+/* ===================== */
+const $=id=>document.getElementById(id);
+const q=new URLSearchParams(location.search);
+const t=parseInt(q.get("team"))-1, c=parseInt(q.get("cat"))-1;
+let pin="",name="";
+try{pin=localStorage.getItem("pin")||""}catch(e){}
+if(q.get("key")){pin=q.get("key");try{localStorage.setItem("pin",pin)}catch(e){}}
+
+async function check(){
+  name="";
+  if(pin){try{const r=await (await fetch(API+"?action=check&pin="+encodeURIComponent(pin))).json();if(r.ok)name=r.name;else{pin="";try{localStorage.removeItem("pin")}catch(e){}}}catch(e){}}
+  render();
+}
+function render(){
+  $("auth").innerHTML=name
+    ?`Trainer: ${name} ✔ STAFF <button class="sm" onclick="logout()">LOGOUT</button>`
+    :`Staff? Enter your PIN.<input id="pin" type="password" placeholder="PIN"><button onclick="login()">LOGIN</button><div id="am" style="color:#e03c28"></div>`;
+  const ok=TEAMS[t]&&CATS[c];
+  $("score").classList.toggle("hide",!name);
+  if(name) $("score").innerHTML= ok
+    ?`<h2>▶ GIVE POINTS</h2><b style="color:${TEAMS[t][1]}">${TEAMS[t][0]}</b><br>${CATS[c]}
+      <input id="pts" type="number" inputmode="numeric" placeholder="Points (e.g. 10)"><button id="sb" onclick="submitScore()">SUBMIT</button><div id="m"></div>`
+    :`Scan a team QR code to give points.`;
+}
+window.login=()=>{pin=$("pin").value.trim();if(!pin)return;try{localStorage.setItem("pin",pin)}catch(e){}check().then(()=>{if(!name&&$("am"))$("am").textContent="Wrong PIN"})};
+window.logout=()=>{pin="";name="";try{localStorage.removeItem("pin")}catch(e){}render()};
+window.submitScore=async()=>{
+  const p=parseInt($("pts").value),m=$("m");
+  if(isNaN(p)){m.textContent="Enter a number!";return}
+  $("sb").disabled=true;m.textContent="Saving...";
+  try{
+    const r=await (await fetch(API,{method:"POST",body:JSON.stringify({pin,team:t+1,cat:c+1,points:p})})).json();
+    if(r.ok){m.style.color="#38a038";m.textContent=`✔ ${p} pts added to ${TEAMS[t][0]}!`;$("pts").value="";load()}
+    else{m.style.color="#e03c28";m.textContent=r.error}
+  }catch(e){m.style.color="#e03c28";m.textContent="Network error, try again"}
+  $("sb").disabled=false;
+};
+async function load(){
+  try{
+    const {matrix}=await (await fetch(API+"?action=board")).json();
+    const tot=matrix.map(r=>r.reduce((a,b)=>a+b,0)),max=Math.max(1,...tot);
+    const order=TEAMS.map((_,i)=>i).sort((a,b)=>tot[b]-tot[a]);
+    $("board").innerHTML=order.map((i,r)=>`<div class="row"><span>${r+1}.</span><span class="ico" style="background:${TEAMS[i][1]}"></span>
+      <span class="name">${TEAMS[i][0]}</span><span class="pts">${tot[i]}</span>
+      <div class="bar"><i style="width:${Math.max(0,tot[i])/max*100}%"></i></div>
+      <div class="cats">${CATS.map((n,k)=>n+": "+matrix[i][k]).join(" | ")}</div></div>`).join("");
+  }catch(e){$("board").textContent="Can't load scores. Check connection."}
+}
+check();load();setInterval(load,10000);
+</script></body></html>
