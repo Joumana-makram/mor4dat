@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR Codes</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+body{font-family:Arial,sans-serif;margin:16px}
+#bar input{width:70%;max-width:420px;padding:10px;font-size:15px}
+#bar button{padding:10px 16px;font-size:15px}
+#g{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.card{border:2px solid #222;padding:10px;text-align:center;break-inside:avoid}
+.card b{display:block;font-size:16px}.card span{font-size:13px;color:#444}
+.qr{display:flex;justify-content:center;margin:8px 0}
+@media print{#bar{display:none}body{margin:6mm}}
+</style></head><body>
+<div id="bar">
+<h2>Make the QR codes</h2>
+<p>Paste your site link, click the button, then press Ctrl+P to print or save as PDF.</p>
+<input id="u" placeholder="https://yourusername.github.io/bonus/">
+<br><br><input id="k" placeholder="Staff PIN (optional, makes a secret staff QR)">
+<button onclick="go()">Make QR codes</button>
+</div>
+<div id="g"></div>
+<script>
+const TEAMS=["Tuna","A5tbot","Tmsa7","7ot","Gmbri","Kaborya"];
+const CATS=["K4fi","Games","Dini","Mos3f","Thkafi"];
+function add(title,sub,url){
+  const d=document.createElement("div");d.className="card";
+  d.innerHTML=`<b>${title}</b><span>${sub}</span><div class="qr"></div>`;
+  document.getElementById("g").appendChild(d);
+  new QRCode(d.querySelector(".qr"),{text:url,width:150,height:150});
+}
+function go(){
+  let u=document.getElementById("u").value.trim().replace(/index\.html$/,"");
+  if(!u)return;if(!u.endsWith("/"))u+="/";
+  document.getElementById("g").innerHTML="";
+  add("LEADERBOARD","for everyone",u);
+  const k=document.getElementById("k").value.trim();
+  if(k)add("STAFF LOGIN","STAFF ONLY - do not show players",u+"?key="+encodeURIComponent(k));
+  TEAMS.forEach((t,i)=>CATS.forEach((c,j)=>add(t,c,u+"?team="+(i+1)+"&cat="+(j+1))));
+}
+</script></body></html>
